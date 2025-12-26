@@ -1,61 +1,143 @@
-function SessionTable({ rows }) {
+function SessionTable({ rows, sort, page, totalPages, onChangePage, onSort }) {
+  const sortMark = (column) => {
+    if (!sort || sort.column !== column) return ''
+    return sort.direction === 'asc' ? '^' : 'v'
+  }
+
   return (
-    <section className="rounded-2xl border border-slate-200 bg-white/80 shadow-sm backdrop-blur">
-      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 px-6 py-4">
+    <section className="rounded-2xl border border-slate-200 bg-white/90 shadow-sm backdrop-blur">
+      <div className="flex items-center justify-between border-b border-slate-100 px-4 py-3">
         <div>
-          <h2 className="text-lg font-semibold text-slate-900">Daily breakdown</h2>
-          <p className="text-sm text-slate-500">Detailed view of orders, follow-ups, and productivity per session.</p>
-        </div>
-        <div className="flex gap-2 text-sm text-slate-600">
-          <div className="flex items-center gap-1 rounded-full bg-sky-50 px-3 py-1 text-sky-700">
-            <span className="h-2 w-2 rounded-full bg-sky-500" />
-            Dual role coverage
-          </div>
+          <h2 className="text-base font-semibold text-slate-900">Daily breakdown</h2>
+          {/* <p className="text-xs text-slate-500">Compact spreadsheet-style view.</p> */}
         </div>
       </div>
       <div className="overflow-x-auto">
-        <table className="min-w-full divide-y divide-slate-100 text-sm">
-          <thead className="bg-slate-50 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
-            <tr>
-              <th className="px-6 py-3">Date</th>
-              <th className="px-6 py-3">Time</th>
-              <th className="px-6 py-3">Branches</th>
-              <th className="px-6 py-3">Orders input</th>
-              <th className="px-6 py-3">Disputed</th>
-              <th className="px-6 py-3">Emails</th>
-              <th className="px-6 py-3">Updated</th>
-              <th className="px-6 py-3">Videos</th>
-              <th className="px-6 py-3">Hours</th>
-              <th className="px-6 py-3">Prod total</th>
-              <th className="px-6 py-3">Prod / hr</th>
-              <th className="px-6 py-3">Avg / site</th>
-              <th className="px-6 py-3">Remarks</th>
+        <table className="min-w-full border-collapse text-xs text-slate-800">
+          <thead>
+            <tr className="bg-slate-50 text-[11px] uppercase tracking-wide text-slate-500">
+              <th className="border border-slate-200 px-3 py-2 text-left">
+                <button type="button" onClick={() => onSort('date')} className="flex items-center gap-1 font-semibold">
+                  Date <span className="text-[10px]">{sortMark('date')}</span>
+                </button>
+              </th>
+              <th className="border border-slate-200 px-3 py-2 text-left">
+                <button type="button" onClick={() => onSort('timeStart')} className="flex items-center gap-1 font-semibold">
+                  Time <span className="text-[10px]">{sortMark('timeStart')}</span>
+                </button>
+              </th>
+              <th className="border border-slate-200 px-3 py-2 text-right">
+                <button type="button" onClick={() => onSort('branches')} className="flex items-center gap-1 font-semibold">
+                  Branches <span className="text-[10px]">{sortMark('branches')}</span>
+                </button>
+              </th>
+              <th className="border border-slate-200 px-3 py-2 text-right">
+                <button type="button" onClick={() => onSort('ordersInput')} className="flex items-center gap-1 font-semibold">
+                  Orders <span className="text-[10px]">{sortMark('ordersInput')}</span>
+                </button>
+              </th>
+              <th className="border border-slate-200 px-3 py-2 text-right">
+                <button type="button" onClick={() => onSort('disputedOrders')} className="flex items-center gap-1 font-semibold">
+                  Disputed <span className="text-[10px]">{sortMark('disputedOrders')}</span>
+                </button>
+              </th>
+              <th className="border border-slate-200 px-3 py-2 text-right">
+                <button type="button" onClick={() => onSort('emailsFollowedUp')} className="flex items-center gap-1 font-semibold">
+                  Emails <span className="text-[10px]">{sortMark('emailsFollowedUp')}</span>
+                </button>
+              </th>
+              <th className="border border-slate-200 px-3 py-2 text-right">
+                <button type="button" onClick={() => onSort('updatedOrders')} className="flex items-center gap-1 font-semibold">
+                  Updated <span className="text-[10px]">{sortMark('updatedOrders')}</span>
+                </button>
+              </th>
+              <th className="border border-slate-200 px-3 py-2 text-right">
+                <button type="button" onClick={() => onSort('videosUploaded')} className="flex items-center gap-1 font-semibold">
+                  Videos <span className="text-[10px]">{sortMark('videosUploaded')}</span>
+                </button>
+              </th>
+              <th className="border border-slate-200 px-3 py-2 text-right">
+                <button type="button" onClick={() => onSort('totalHours')} className="flex items-center gap-1 font-semibold">
+                  Hours <span className="text-[10px]">{sortMark('totalHours')}</span>
+                </button>
+              </th>
+              <th className="border border-slate-200 px-3 py-2 text-right">
+                <button type="button" onClick={() => onSort('productivityTotalActivities')} className="flex items-center gap-1 font-semibold">
+                  Prod total <span className="text-[10px]">{sortMark('productivityTotalActivities')}</span>
+                </button>
+              </th>
+              <th className="border border-slate-200 px-3 py-2 text-right">
+                <button type="button" onClick={() => onSort('productivityPerHour')} className="flex items-center gap-1 font-semibold">
+                  Prod/hr <span className="text-[10px]">{sortMark('productivityPerHour')}</span>
+                </button>
+              </th>
+              <th className="border border-slate-200 px-3 py-2 text-right">
+                <button type="button" onClick={() => onSort('averageActivitiesPerSite')} className="flex items-center gap-1 font-semibold">
+                  Avg/site <span className="text-[10px]">{sortMark('averageActivitiesPerSite')}</span>
+                </button>
+              </th>
+              <th className="border border-slate-200 px-3 py-2 text-left">
+                <button type="button" onClick={() => onSort('remarks')} className="flex items-center gap-1 font-semibold">
+                  Remarks <span className="text-[10px]">{sortMark('remarks')}</span>
+                </button>
+              </th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-100 bg-white">
-            {rows.map((row) => (
-              <tr key={row.id} className="hover:bg-slate-50/60">
-                <td className="whitespace-nowrap px-6 py-4 font-semibold text-slate-900">
-                  {row.day} · {row.date}
+          <tbody>
+            {rows.length === 0 ? (
+              <tr>
+                <td colSpan={13} className="border border-slate-200 px-3 py-4 text-center text-slate-500">
+                  No sessions for this month.
                 </td>
-                <td className="whitespace-nowrap px-6 py-4 text-slate-700">
-                  {row.timeStart} – {row.timeEnd}
-                </td>
-                <td className="px-6 py-4 text-slate-700">{row.branches}</td>
-                <td className="px-6 py-4 text-slate-700">{row.ordersInput}</td>
-                <td className="px-6 py-4 text-slate-700">{row.disputedOrders}</td>
-                <td className="px-6 py-4 text-slate-700">{row.emailsFollowedUp}</td>
-                <td className="px-6 py-4 text-slate-700">{row.updatedOrders}</td>
-                <td className="px-6 py-4 text-slate-700">{row.videosUploaded}</td>
-                <td className="px-6 py-4 text-slate-700">{row.totalHours.toFixed(2)}</td>
-                <td className="px-6 py-4 text-slate-700">{row.productivityTotalActivities}</td>
-                <td className="px-6 py-4 text-slate-700">{row.productivityPerHour}</td>
-                <td className="px-6 py-4 text-slate-700">{row.averageActivitiesPerSite.toFixed(2)}</td>
-                <td className="px-6 py-4 text-slate-600">{row.remarks}</td>
               </tr>
-            ))}
+            ) : (
+              rows.map((row, idx) => (
+                <tr key={row.id} className={idx % 2 === 0 ? 'bg-white' : 'bg-slate-50/60'}>
+                  <td className="whitespace-nowrap border border-slate-200 px-3 py-2 font-semibold text-slate-900">
+                    {row.day} · {row.date}
+                  </td>
+                  <td className="whitespace-nowrap border border-slate-200 px-3 py-2 text-slate-700">
+                    {row.timeStart} – {row.timeEnd}
+                  </td>
+                  <td className="border border-slate-200 px-3 py-2 text-right">{row.branches}</td>
+                  <td className="border border-slate-200 px-3 py-2 text-right">{row.ordersInput}</td>
+                  <td className="border border-slate-200 px-3 py-2 text-right">{row.disputedOrders}</td>
+                  <td className="border border-slate-200 px-3 py-2 text-right">{row.emailsFollowedUp}</td>
+                  <td className="border border-slate-200 px-3 py-2 text-right">{row.updatedOrders}</td>
+                  <td className="border border-slate-200 px-3 py-2 text-right">{row.videosUploaded}</td>
+                  <td className="border border-slate-200 px-3 py-2 text-right">{Number(row.totalHours || 0).toFixed(2)}</td>
+                  <td className="border border-slate-200 px-3 py-2 text-right">{row.productivityTotalActivities}</td>
+                  <td className="border border-slate-200 px-3 py-2 text-right">{Number(row.productivityPerHour || 0).toFixed(2)}</td>
+                  <td className="border border-slate-200 px-3 py-2 text-right">{Number(row.averageActivitiesPerSite || 0).toFixed(2)}</td>
+                  <td className="border border-slate-200 px-3 py-2 text-slate-700">{row.remarks}</td>
+                </tr>
+              ))
+            )}
           </tbody>
         </table>
+      </div>
+      <div className="flex items-center justify-between border-t border-slate-100 px-4 py-3 text-xs text-slate-700">
+        <span>
+          Page {page} of {totalPages}
+        </span>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            disabled={page <= 1}
+            onClick={() => onChangePage(Math.max(1, page - 1))}
+            className="rounded border border-slate-200 px-3 py-1 font-semibold text-slate-700 transition disabled:cursor-not-allowed disabled:opacity-50 hover:bg-slate-100"
+          >
+            Prev
+          </button>
+          <button
+            type="button"
+            disabled={page >= totalPages}
+            onClick={() => onChangePage(Math.min(totalPages, page + 1))}
+            className="rounded border border-slate-200 px-3 py-1 font-semibold text-slate-700 transition disabled:cursor-not-allowed disabled:opacity-50 hover:bg-slate-100"
+          >
+            Next
+          </button>
+        </div>
       </div>
     </section>
   )

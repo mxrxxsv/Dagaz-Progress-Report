@@ -145,7 +145,7 @@ function AddSessionForm({ entryForm, entryErrors, onChangeField, onSubmit, onOpe
             type="submit"
             className="w-full rounded-lg bg-[var(--brand-primary)] px-4 py-3 text-center text-sm font-semibold text-white transition hover:bg-[var(--brand-primary-strong)] focus:outline-none focus:ring focus:ring-[var(--brand-focus)]"
           >
-            Add entry with validation
+            Add entry 
           </button>
         </div>
       </form>
