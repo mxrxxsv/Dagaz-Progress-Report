@@ -7,7 +7,7 @@ const parseTimeToDecimal = (value) => {
   return h + m / 60 + s / 3600
 }
 
-function AddSessionForm({ entryForm, entryErrors, onChangeField, onSubmit, onOpenDayModal }) {
+function AddSessionForm({ entryForm, entryErrors, formRef, editingId, onChangeField, onSubmit, onCancelEdit, onOpenDayModal }) {
   const inputFields = [
     { key: 'day', label: 'Day', type: 'text' },
     { key: 'date', label: 'Date', type: 'date' },
@@ -77,10 +77,10 @@ function AddSessionForm({ entryForm, entryErrors, onChangeField, onSubmit, onOpe
   ]
 
   return (
-    <section className="rounded-2xl border border-slate-200 bg-white/90 p-6 shadow-sm backdrop-blur">
+    <section ref={formRef} className="rounded-2xl border border-slate-200 bg-white/90 p-6 shadow-sm backdrop-blur">
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 pb-4">
         <div>
-          <h2 className="text-lg font-semibold text-slate-900">Add session</h2>
+          <h2 className="text-lg font-semibold text-slate-900">{editingId ? 'Edit session' : 'Add session'}</h2>
         </div>
       </div>
 
@@ -140,13 +140,22 @@ function AddSessionForm({ entryForm, entryErrors, onChangeField, onSubmit, onOpe
           {entryErrors.remarks ? <span className="text-xs text-rose-600">{entryErrors.remarks}</span> : null}
         </div>
 
-        <div className="md:col-span-2 lg:col-span-4">
+        <div className="md:col-span-2 lg:col-span-4 flex flex-col gap-3 sm:flex-row">
           <button
             type="submit"
             className="w-full rounded-lg bg-[var(--brand-primary)] px-4 py-3 text-center text-sm font-semibold text-white transition hover:bg-[var(--brand-primary-strong)] focus:outline-none focus:ring focus:ring-[var(--brand-focus)]"
           >
-            Add entry 
+            {editingId ? 'Save changes' : 'Add entry'}
           </button>
+          {editingId ? (
+            <button
+              type="button"
+              onClick={onCancelEdit}
+              className="w-full rounded-lg border border-slate-200 bg-white px-4 py-3 text-center text-sm font-semibold text-slate-700 transition hover:bg-slate-50 focus:outline-none focus:ring focus:ring-[var(--brand-focus)]"
+            >
+              Cancel edit
+            </button>
+          ) : null}
         </div>
       </form>
     </section>

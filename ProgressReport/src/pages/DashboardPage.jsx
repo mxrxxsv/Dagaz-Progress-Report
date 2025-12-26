@@ -9,7 +9,10 @@ function DashboardPage({
   summary,
   entryForm,
   entryErrors,
+  lastSavedId,
+  formRef,
   rows,
+  editingId,
   sort,
   monthFilter,
   monthOptions,
@@ -17,12 +20,15 @@ function DashboardPage({
   page,
   totalPages,
   onChangePage,
+  onEditRow,
+  onDeleteRow,
   onSort,
   daysOfWeek,
   showDayModal,
   onSignOut,
   onChangeEntryField,
   onSubmitEntry,
+  onCancelEdit,
   onOpenDayModal,
   onSelectDay,
   onCloseDayModal,
@@ -46,7 +52,9 @@ function DashboardPage({
         </section>
 
         <SessionTable
+          lastSavedId={lastSavedId}
           rows={rows}
+          editingId={editingId}
           sort={sort}
           monthFilter={monthFilter}
           monthOptions={monthOptions}
@@ -54,14 +62,19 @@ function DashboardPage({
           page={page}
           totalPages={totalPages}
           onChangePage={onChangePage}
+          onEditRow={onEditRow}
+          onDeleteRow={onDeleteRow}
           onSort={onSort}
         />
 
         <AddSessionForm
           entryForm={entryForm}
           entryErrors={entryErrors}
+          formRef={formRef}
+          editingId={editingId}
           onChangeField={onChangeEntryField}
           onSubmit={onSubmitEntry}
+          onCancelEdit={onCancelEdit}
           onOpenDayModal={onOpenDayModal}
         />
 

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 
 import { initialData } from './data/initialData'
 import AuthPage from './pages/AuthPage'
@@ -36,6 +36,14 @@ const parseTimeToDecimal = (value) => {
   return h + m / 60 + s / 3600
 }
 
+const formatDecimalToTime = (value) => {
+  if (!Number.isFinite(value) || value <= 0) return ''
+  const totalMinutes = Math.round(value * 60)
+  const hours = Math.floor(totalMinutes / 60)
+  const minutes = totalMinutes % 60
+  return `${hours}:${String(minutes).padStart(2, '0')}`
+}
+
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [displayName, setDisplayName] = useState('Analyst')
@@ -48,6 +56,9 @@ function App() {
   const [entryErrors, setEntryErrors] = useState({})
   const [monthFilter, setMonthFilter] = useState('all')
   const [page, setPage] = useState(1)
+  const [editingId, setEditingId] = useState(null)
+  const [lastSavedId, setLastSavedId] = useState(null)
+  const formRef = useRef(null)
 
   useEffect(() => {
     try {
@@ -265,7 +276,7 @@ function App() {
     const productivityPerHour = hoursDecimal ? totalActivities / hoursDecimal : 0
     const averageActivitiesPerSite = hoursDecimal && branches ? totalActivities / (branches * hoursDecimal) : 0
     const newRow = {
-      id: Date.now(),
+      id: editingId || Date.now(),
       ...entryForm,
       totalHours: Number(hoursDecimal.toFixed(2)),
       branches,
@@ -279,9 +290,55 @@ function App() {
       averageActivitiesPerSite: Number(averageActivitiesPerSite.toFixed(2)),
     }
 
-    setRows((prev) => [newRow, ...prev])
+    setRows((prev) => {
+      if (editingId) return prev.map((row) => (row.id === editingId ? newRow : row))
+      return [newRow, ...prev]
+    })
     setEntryForm(emptyEntryForm)
     setEntryErrors({})
+    setEditingId(null)
+    setLastSavedId(newRow.id)
+  }
+
+  const handleEditRow = (rowId) => {
+    const target = rows.find((row) => row.id === rowId)
+    if (!target) return
+    setEditingId(rowId)
+    setEntryErrors({})
+    setEntryForm({
+      day: target.day || '',
+      date: target.date || '',
+      timeStart: target.timeStart || '',
+      timeEnd: target.timeEnd || '',
+      totalHours: formatDecimalToTime(target.totalHours),
+      branches: target.branches ?? '',
+      ordersInput: target.ordersInput ?? '',
+      disputedOrders: target.disputedOrders ?? '',
+      emailsFollowedUp: target.emailsFollowedUp ?? '',
+      updatedOrders: target.updatedOrders ?? '',
+      videosUploaded: target.videosUploaded ?? '',
+      remarks: target.remarks || '',
+    })
+
+    requestAnimationFrame(() => {
+      if (formRef.current) {
+        formRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' })
+      }
+    })
+  }
+
+  const handleCancelEdit = () => {
+    setEditingId(null)
+    setEntryErrors({})
+    setEntryForm(emptyEntryForm)
+  }
+
+  const handleDeleteRow = (rowId) => {
+    const confirmDelete = window.confirm('Delete this entry?')
+    if (!confirmDelete) return
+    setRows((prev) => prev.filter((row) => row.id !== rowId))
+    setLastSavedId(null)
+    if (editingId === rowId) handleCancelEdit()
   }
 
   if (!isAuthenticated) {
@@ -301,7 +358,10 @@ function App() {
       summary={summary}
       entryForm={entryForm}
       entryErrors={entryErrors}
+      formRef={formRef}
+      lastSavedId={lastSavedId}
       rows={paginatedRows}
+      editingId={editingId}
       sort={sort}
       monthFilter={monthFilter}
       monthOptions={monthOptions}
@@ -312,12 +372,15 @@ function App() {
       page={page}
       totalPages={totalPages}
       onChangePage={setPage}
+      onEditRow={handleEditRow}
+      onDeleteRow={handleDeleteRow}
       onSort={handleSort}
       daysOfWeek={daysOfWeek}
       showDayModal={showDayModal}
       onSignOut={handleSignOut}
       onChangeEntryField={handleEntryFieldChange}
       onSubmitEntry={handleAddEntry}
+      onCancelEdit={handleCancelEdit}
       onOpenDayModal={() => setShowDayModal(true)}
       onSelectDay={(day) => {
         handleEntryFieldChange('day', day)

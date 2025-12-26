@@ -1,4 +1,13 @@
-function SessionTable({ rows, sort, page, totalPages, onChangePage, onSort }) {
+import { useEffect, useRef } from 'react'
+
+function SessionTable({ rows, sort, editingId, lastSavedId, page, totalPages, onChangePage, onSort, onEditRow, onDeleteRow }) {
+  const rowRefs = useRef({})
+
+  useEffect(() => {
+    if (!lastSavedId) return
+    const target = rowRefs.current[lastSavedId]
+    if (target) target.scrollIntoView({ behavior: 'smooth', block: 'center' })
+  }, [lastSavedId])
   const sortMark = (column) => {
     if (!sort || sort.column !== column) return ''
     return sort.direction === 'asc' ? '^' : 'v'
@@ -91,8 +100,21 @@ function SessionTable({ rows, sort, page, totalPages, onChangePage, onSort }) {
                 </td>
               </tr>
             ) : (
-              rows.map((row, idx) => (
-                <tr key={row.id} className={idx % 2 === 0 ? 'bg-white' : 'bg-slate-50/60'}>
+              rows.map((row, idx) => {
+                const isActive = editingId === row.id
+                const isSaved = lastSavedId === row.id
+                const base = idx % 2 === 0 ? 'bg-white' : 'bg-slate-50/60'
+                const active = isActive ? 'outline outline-2 outline-[var(--brand-primary)] bg-[var(--brand-primary-soft)]' : ''
+                const saved = isSaved ? 'ring-2 ring-[var(--brand-primary)] ring-offset-2' : ''
+                return (
+                  <tr
+                    key={row.id}
+                    ref={(el) => {
+                      if (el) rowRefs.current[row.id] = el
+                    }}
+                    onClick={() => onEditRow(row.id)}
+                    className={`${base} ${active} ${saved} cursor-pointer transition hover:bg-[var(--brand-primary-soft)]`}
+                  >
                   <td className="whitespace-nowrap border border-slate-200 px-3 py-2 font-semibold text-slate-900">
                     {row.day} · {row.date}
                   </td>
@@ -109,9 +131,10 @@ function SessionTable({ rows, sort, page, totalPages, onChangePage, onSort }) {
                   <td className="border border-slate-200 px-3 py-2 text-right">{row.productivityTotalActivities}</td>
                   <td className="border border-slate-200 px-3 py-2 text-right">{Number(row.productivityPerHour || 0).toFixed(2)}</td>
                   <td className="border border-slate-200 px-3 py-2 text-right">{Number(row.averageActivitiesPerSite || 0).toFixed(2)}</td>
-                  <td className="border border-slate-200 px-3 py-2 text-slate-700">{row.remarks}</td>
-                </tr>
-              ))
+                    <td className="border border-slate-200 px-3 py-2 text-slate-700">{row.remarks}</td>
+                  </tr>
+                )
+              })
             )}
           </tbody>
         </table>
