@@ -23,7 +23,7 @@ function AuthPage({ authForm, authError, onChangeField, onSubmit }) {
             <div>
               <p className="text-sm font-semibold uppercase tracking-wide text-[var(--brand-primary)]">Dagaz Progress Portal</p>
               <h1 className="text-2xl font-semibold text-slate-900">Secure login</h1>
-              <p className="mt-1 text-sm text-slate-500">Access personalized productivity insights and daily breakdowns.</p>
+              <p className="mt-1 text-sm text-slate-500">Access your progress report.</p>
             </div>
           </div>
           {/* <div className="hidden h-12 w-12 items-center justify-center rounded-xl bg-[var(--brand-primary-soft)] text-center text-lg font-bold text-[var(--brand-primary)] shadow-inner md:flex">
@@ -68,7 +68,7 @@ function AuthPage({ authForm, authError, onChangeField, onSubmit }) {
             type="submit"
             className="w-full rounded-lg bg-[var(--brand-primary)] px-4 py-3 text-center text-sm font-semibold text-white transition hover:bg-[var(--brand-primary-strong)] focus:outline-none focus:ring focus:ring-[var(--brand-focus)]"
           >
-            Sign in to view report
+            Sign in 
           </button>
         </form>
 
