@@ -4,6 +4,10 @@ React + Vite dashboard for tracking daily productivity sessions with CSV import,
 
 This system lets you record, review, and analyze daily work sessions in one place. You can ingest data from a CSV or start with a built-in sample, then filter by month, sort any column, and page through entries. Each row is editable by clicking it—edits scroll you to the form, and saves scroll you back with a highlight so you see changes instantly. Summary cards and live form chips show key productivity metrics, while localStorage keeps your data and draft entries persistent between sessions.
 
+## Description
+
+Dagaz Progress Dashboard is a lightweight productivity tracker for dagaz assoc. It ingests CSVs or sample data, lets you log daily sessions with a single time input, and computes activity efficiency automatically. You can filter by month, sort any column, paginate, and edit by clicking rows. The form and table stay in sync with smooth scrolling and highlights, while summaries surface totals, minutes per activity, and activities per site. Data and in-progress drafts persist locally so you can pick up where you left off.
+
 ## Quick start
 
 ```bash
@@ -60,3 +64,11 @@ Place an optional CSV in `src/data` (any `*.csv`); the first file found will loa
 - Time input accepts `HH:MM` or `HH:MM:SS` and is converted to decimal hours for all calculations.
 - LocalStorage stores rows and the in-progress form; clearing browser storage resets to CSV/fallback data.
 - Sorting defaults to date desc; every header is clickable to toggle asc/desc.
+
+## Build log (high level)
+
+- Day 1: 
+- Scaffolded Vite + React app; added auth gate and baseline layout. Implemented Add Session form with single time input, validation, and computed chips. Added localStorage persistence for rows and drafts.
+- Implemented CSV ingestion with fallback data, date parsing, and numeric conversions. Added month filter, summary cards (totals, minutes per activity, activities per site), and initial table layout.
+- Added sorting on all headers, pagination (10/page), and minimal spreadsheet styling. Switched to inline row editing by clicking rows; added edit/save and delete flows with confirm.
+- Improved UX with smooth scroll to form on edit and back to the saved row with highlight after save; added active-row highlighting. Refined README and descriptions for metrics and data flow.
