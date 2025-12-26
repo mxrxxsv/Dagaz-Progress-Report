@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 
 import { parseTimeToDecimal, formatDecimalToTime } from '../utils/time'
 
+// Keys used for lightweight localStorage persistence of table rows and the draft form.
 const STORAGE_KEYS = {
   rows: 'progressRows',
   entry: 'progressEntryDraft',
@@ -34,6 +35,7 @@ export function useProgressData(initialRows) {
   const [showDayModal, setShowDayModal] = useState(false)
   const formRef = useRef(null)
 
+  // On first mount, hydrate rows and draft entry from storage if available.
   useEffect(() => {
     try {
       const savedRows = localStorage.getItem(STORAGE_KEYS.rows)
@@ -54,6 +56,7 @@ export function useProgressData(initialRows) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
+  // Persist rows whenever they change.
   useEffect(() => {
     try {
       localStorage.setItem(STORAGE_KEYS.rows, JSON.stringify(rows))
@@ -62,6 +65,7 @@ export function useProgressData(initialRows) {
     }
   }, [rows])
 
+  // Persist the in-progress form draft as the user types.
   useEffect(() => {
     try {
       localStorage.setItem(STORAGE_KEYS.entry, JSON.stringify(entryForm))
@@ -80,6 +84,7 @@ export function useProgressData(initialRows) {
     })
   }
 
+  // Build dropdown options for month filter from existing rows (latest first).
   const monthOptions = useMemo(() => {
     const set = new Map()
     rows.forEach((row) => {
@@ -101,6 +106,7 @@ export function useProgressData(initialRows) {
     return rows.filter((row) => row.date && row.date.startsWith(monthFilter))
   }, [rows, monthFilter])
 
+  // Sort filtered rows by current column and direction; handles dates, strings, and numbers.
   const sortedRows = useMemo(() => {
     const arr = [...filteredRows]
     const { column, direction } = sort
@@ -138,6 +144,7 @@ export function useProgressData(initialRows) {
   const pageSize = 10
   const totalPages = Math.max(1, Math.ceil(filteredRows.length / pageSize))
 
+  // Clamp page if data shrinks (e.g., after delete or filter change).
   useEffect(() => {
     const nextTotalPages = Math.max(1, Math.ceil(filteredRows.length / pageSize))
     if (page > nextTotalPages) setPage(nextTotalPages)
@@ -149,6 +156,7 @@ export function useProgressData(initialRows) {
     return sortedRows.slice(start, start + pageSize)
   }, [sortedRows, page])
 
+  // Aggregate summary stats across the currently filtered rows.
   const summary = useMemo(() => {
     const totals = filteredRows.reduce(
       (acc, row) => ({
@@ -185,6 +193,7 @@ export function useProgressData(initialRows) {
     setPage(1)
   }
 
+  // Basic client-side validation for required fields and numeric constraints.
   const validateEntry = () => {
     const errors = {}
 
@@ -212,6 +221,7 @@ export function useProgressData(initialRows) {
     return errors
   }
 
+  // Create or update a row, computing derived productivity metrics before saving.
   const handleAddEntry = (event) => {
     event.preventDefault()
     const errors = validateEntry()
@@ -256,6 +266,7 @@ export function useProgressData(initialRows) {
     setLastSavedId(newRow.id)
   }
 
+  // Load a row into the form for editing and scroll the form into view.
   const handleEditRow = (rowId) => {
     const target = rows.find((row) => row.id === rowId)
     if (!target) return
