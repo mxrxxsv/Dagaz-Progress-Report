@@ -27,6 +27,15 @@ const emptyEntryForm = {
   remarks: '',
 }
 
+const parseTimeToDecimal = (value) => {
+  if (!value || typeof value !== 'string') return Number.NaN
+  const parts = value.split(':').map(Number)
+  if (parts.length < 2 || parts.length > 3) return Number.NaN
+  const [h, m, s = 0] = parts
+  if ([h, m, s].some((v) => Number.isNaN(v))) return Number.NaN
+  return h + m / 60 + s / 3600
+}
+
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [displayName, setDisplayName] = useState('Analyst')
@@ -128,15 +137,7 @@ function App() {
       if (!entryForm[key]) errors[key] = 'Required'
     })
 
-    const requiredNumeric = [
-      'totalHours',
-      'branches',
-      'ordersInput',
-      'disputedOrders',
-      'emailsFollowedUp',
-      'updatedOrders',
-      'videosUploaded',
-    ]
+    const requiredNumeric = ['branches', 'ordersInput', 'disputedOrders', 'emailsFollowedUp', 'updatedOrders', 'videosUploaded']
     requiredNumeric.forEach((key) => {
       if (entryForm[key] === '') {
         errors[key] = 'Required'
@@ -148,8 +149,9 @@ function App() {
       else if (value < 0) errors[key] = 'Must be positive'
     })
 
-    const hoursDecimal = Number.parseFloat(entryForm.totalHours)
-    if (Number.isNaN(hoursDecimal) || hoursDecimal <= 0) errors.totalHours = 'Enter hours (positive)'
+    const hoursDecimal = parseTimeToDecimal(entryForm.totalHours)
+    if (!entryForm.totalHours) errors.totalHours = 'Required'
+    if (Number.isNaN(hoursDecimal) || hoursDecimal <= 0) errors.totalHours = 'Enter valid time (HH:MM or HH:MM:SS)'
 
     return errors
   }
@@ -161,7 +163,7 @@ function App() {
     if (Object.keys(errors).length > 0) return
 
     const toNumber = (value) => Number.parseFloat(value)
-    const hoursDecimal = toNumber(entryForm.totalHours)
+    const hoursDecimal = parseTimeToDecimal(entryForm.totalHours)
 
     const totalActivities =
       toNumber(entryForm.ordersInput) +
@@ -176,13 +178,13 @@ function App() {
     const newRow = {
       id: Date.now(),
       ...entryForm,
+      totalHours: Number(hoursDecimal.toFixed(2)),
       branches,
       ordersInput: toNumber(entryForm.ordersInput),
       disputedOrders: toNumber(entryForm.disputedOrders),
       emailsFollowedUp: toNumber(entryForm.emailsFollowedUp),
       updatedOrders: toNumber(entryForm.updatedOrders),
       videosUploaded: toNumber(entryForm.videosUploaded),
-      totalHours: Number(hoursDecimal.toFixed(2)),
       productivityTotalActivities: totalActivities,
       productivityPerHour: Number(productivityPerHour.toFixed(2)),
       averageActivitiesPerSite: Number(averageActivitiesPerSite.toFixed(2)),
