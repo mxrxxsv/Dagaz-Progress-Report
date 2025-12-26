@@ -1,4 +1,4 @@
-# Dagaz Progress Dashboard
+# Dagaz Progress Report
 
 React + Vite dashboard for tracking daily productivity sessions with CSV import, month filtering, sorting, pagination, and inline edit/delete.
 
