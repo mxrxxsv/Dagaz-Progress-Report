@@ -12,6 +12,7 @@ function AddSessionForm({ entryForm, entryErrors, draftSavedAt, formRef, editing
     { key: 'emailsFollowedUp', label: 'Emails followed up', type: 'number' },
     { key: 'updatedOrders', label: 'Updated orders', type: 'number' },
     { key: 'videosUploaded', label: 'Videos uploaded', type: 'number' },
+    { key: 'platformUsed', label: 'Platform used', type: 'text' },
     { key: 'totalHours', label: 'Total hours (HH:MM or HH:MM:SS)', type: 'text', placeholder: 'e.g. 1:05:23' },
   ]
 

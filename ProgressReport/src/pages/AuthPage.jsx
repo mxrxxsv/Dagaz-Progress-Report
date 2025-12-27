@@ -1,6 +1,8 @@
+import { useState } from 'react'
 import logoSrc from '../assets/dagaz-logo.png'
 
-function AuthPage({ authForm, authError, onChangeField, onSubmit }) {
+function AuthPage({ authForm, authError, onChangeField, onSubmit, googleAuthUrl }) {
+  const [showEmailForm, setShowEmailForm] = useState(false)
 
   return (
     <div className="flex min-h-screen items-center justify-center px-4 py-12">
@@ -31,50 +33,71 @@ function AuthPage({ authForm, authError, onChangeField, onSubmit }) {
           </div> */}
         </div>
 
-        <form className="space-y-5" onSubmit={onSubmit}>
-          <div>
-            <label className="text-sm font-medium text-slate-700" htmlFor="email">
-              Work email
-            </label>
-            <input
-              id="email"
-              type="email"
-              value={authForm.email}
-              onChange={(e) => onChangeField('email', e.target.value)}
-              className="mt-2 w-full rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-medium text-slate-900 outline-none ring-[var(--brand-primary-soft)] focus:border-[var(--brand-primary)] focus:ring"
-              placeholder="you@company.com"
-              required
-            />
-          </div>
-
-          <div>
-            <label className="text-sm font-medium text-slate-700" htmlFor="password">
-              Password
-            </label>
-            <input
-              id="password"
-              type="password"
-              value={authForm.password}
-              onChange={(e) => onChangeField('password', e.target.value)}
-              className="mt-2 w-full rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-medium text-slate-900 outline-none ring-[var(--brand-primary-soft)] focus:border-[var(--brand-primary)] focus:ring"
-              placeholder="••••••••"
-              required
-            />
-          </div>
-
-          {authError ? <p className="text-sm text-rose-600">{authError}</p> : null}
-
-          <button
-            type="submit"
-            className="w-full rounded-lg bg-[var(--brand-primary)] px-4 py-3 text-center text-sm font-semibold text-white transition hover:bg-[var(--brand-primary-strong)] focus:outline-none focus:ring focus:ring-[var(--brand-focus)]"
+        <div className="space-y-4">
+          <a
+            href={googleAuthUrl}
+            className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-[var(--brand-primary)] px-4 py-3 text-sm font-semibold text-white transition hover:bg-[var(--brand-primary-strong)] focus:outline-none focus:ring focus:ring-[var(--brand-focus)]"
           >
-            Sign in 
-          </button>
-        </form>
+            Continue with Google 
+          </a>
 
-        <p className="mt-6 text-center text-xs text-slate-500">
-          This demo login keeps data local only. For production, connect to your auth provider.
-        </p>
+          <p className="text-center text-xs text-slate-500">
+            Google sign-in redirects to the backend; make sure HTTPS is enabled so the secure session cookie is set.
+          </p>
+
+          <div className="text-center">
+            <button
+              type="button"
+              className="text-xs font-semibold text-[var(--brand-primary)] underline"
+              onClick={() => setShowEmailForm((v) => !v)}
+            >
+              {showEmailForm ? 'Hide email/password' : 'Use email/password'}
+            </button>
+          </div>
+
+          {showEmailForm ? (
+            <form className="space-y-5" onSubmit={onSubmit}>
+              <div>
+                <label className="text-sm font-medium text-slate-700" htmlFor="email">
+                  Work email
+                </label>
+                <input
+                  id="email"
+                  type="email"
+                  value={authForm.email}
+                  onChange={(e) => onChangeField('email', e.target.value)}
+                  className="mt-2 w-full rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-medium text-slate-900 outline-none ring-[var(--brand-primary-soft)] focus:border-[var(--brand-primary)] focus:ring"
+                  placeholder="you@company.com"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="text-sm font-medium text-slate-700" htmlFor="password">
+                  Password
+                </label>
+                <input
+                  id="password"
+                  type="password"
+                  value={authForm.password}
+                  onChange={(e) => onChangeField('password', e.target.value)}
+                  className="mt-2 w-full rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-medium text-slate-900 outline-none ring-[var(--brand-primary-soft)] focus:border-[var(--brand-primary)] focus:ring"
+                  placeholder="••••••••"
+                  required
+                />
+              </div>
+
+              {authError ? <p className="text-sm text-rose-600">{authError}</p> : null}
+
+              <button
+                type="submit"
+                className="w-full rounded-lg border border-[var(--brand-primary)] px-4 py-3 text-center text-sm font-semibold text-[var(--brand-primary)] transition hover:bg-[var(--brand-primary-soft)] focus:outline-none focus:ring focus:ring-[var(--brand-focus)]"
+              >
+                Sign in with email
+              </button>
+            </form>
+          ) : null}
+        </div>
       </div>
     </div>
   )

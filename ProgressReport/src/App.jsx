@@ -4,10 +4,10 @@ import { initialData } from './data/initialData'
 import { useProgressData } from './hooks/useProgressData'
 import AuthPage from './pages/AuthPage'
 import DashboardPage from './pages/DashboardPage'
+import { apiClient, API_BASE_URL } from './api/client'
 import './App.css'
 
 const daysOfWeek = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
-const AUTH_STORAGE_KEY = 'progressAuth'
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false)
@@ -30,6 +30,12 @@ function App() {
     showDayModal,
     formRef,
     summary,
+    loading,
+    loadError,
+    isSyncing,
+    loadedOnce,
+    sheetUrl,
+    importStatus,
   } = state
 
   const {
@@ -42,24 +48,34 @@ function App() {
     handleEditRow,
     handleCancelEdit,
     handleDeleteRow,
+    reloadRows,
+    setSheetUrl,
+    handleImportSpreadsheet,
+    resetRows,
   } = actions
 
   const handleAuthFieldChange = (key, value) => setAuthForm((prev) => ({ ...prev, [key]: value }))
 
+  // Bootstrap session from backend cookie
   useEffect(() => {
-    try {
-      const savedAuth = localStorage.getItem(AUTH_STORAGE_KEY)
-      if (savedAuth) {
-        const parsed = JSON.parse(savedAuth)
-        if (parsed?.email) {
-          setIsAuthenticated(true)
-          setDisplayName(parsed.displayName || 'Analyst')
-        }
+    let active = true
+    const checkSession = async () => {
+      try {
+        const { user } = await apiClient.me()
+        if (!active) return
+        setIsAuthenticated(true)
+        setDisplayName(user?.display_name || user?.email?.split('@')[0] || 'Analyst')
+        reloadRows()
+      } catch (_err) {
+        if (!active) return
+        setIsAuthenticated(false)
       }
-    } catch (err) {
-      // ignore storage errors
     }
-  }, [])
+    checkSession()
+    return () => {
+      active = false
+    }
+  }, [reloadRows])
 
   const handleLogin = (event) => {
     event.preventDefault()
@@ -67,25 +83,29 @@ function App() {
       setAuthError('Please enter both email and password to continue.')
       return
     }
-    setIsAuthenticated(true)
-    const name = authForm.email.split('@')[0] || 'Analyst'
-    setDisplayName(name)
-    try {
-      localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify({ email: authForm.email, displayName: name }))
-    } catch (err) {
-      // ignore storage errors
-    }
     setAuthError('')
+    apiClient
+      .login(authForm.email, authForm.password)
+      .then(async ({ user }) => {
+        setIsAuthenticated(true)
+        setDisplayName(user?.display_name || user?.email?.split('@')[0] || 'Analyst')
+        await reloadRows()
+      })
+      .catch((err) => {
+        setIsAuthenticated(false)
+        setAuthError(err?.message || 'Login failed. Check your credentials.')
+      })
   }
 
-  const handleSignOut = () => {
+  const handleSignOut = async () => {
     setIsAuthenticated(false)
     setAuthForm({ email: '', password: '' })
     try {
-      localStorage.removeItem(AUTH_STORAGE_KEY)
+      await apiClient.logout()
     } catch (err) {
-      // ignore storage errors
+      // ignore logout failure; still clear local state
     }
+    resetRows()
   }
 
   if (!isAuthenticated) {
@@ -95,6 +115,7 @@ function App() {
         authError={authError}
         onChangeField={handleAuthFieldChange}
         onSubmit={handleLogin}
+        googleAuthUrl={`${API_BASE_URL}/auth/google/start`}
       />
     )
   }
@@ -111,6 +132,15 @@ function App() {
       rows={rows}
       editingId={editingId}
       sort={sort}
+      loading={loading}
+      loadError={loadError}
+      isSyncing={isSyncing}
+      sheetUrl={sheetUrl}
+      importStatus={importStatus}
+      onChangeSheetUrl={setSheetUrl}
+      onImportSpreadsheet={handleImportSpreadsheet}
+      onResetRows={resetRows}
+      onRetryLoad={reloadRows}
       monthFilter={monthFilter}
       monthOptions={monthOptions}
       onChangeMonthFilter={(value) => {

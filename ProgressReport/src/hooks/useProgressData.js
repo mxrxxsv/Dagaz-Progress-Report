@@ -1,10 +1,10 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
+import { apiClient } from '../api/client'
 import { parseTimeToDecimal, formatDecimalToTime } from '../utils/time'
 
-// Keys used for lightweight localStorage persistence of table rows and the draft form.
+// Key used for lightweight localStorage persistence of the draft form only.
 const STORAGE_KEYS = {
-  rows: 'progressRows',
   entry: 'progressEntryDraft',
 }
 
@@ -20,6 +20,7 @@ const emptyEntryForm = {
   emailsFollowedUp: '',
   updatedOrders: '',
   videosUploaded: '',
+  platformUsed: '',
   remarks: '',
 }
 
@@ -78,12 +79,69 @@ const to12hDisplay = (value) => {
 
 const normalizeRowTimes = (row) => ({
   ...row,
-  timeStart: normalizeTimeForInput(row.timeStart),
-  timeEnd: normalizeTimeForInput(row.timeEnd),
+  timeStart: normalizeTimeForInput(row.timeStart || row.time_start),
+  timeEnd: normalizeTimeForInput(row.timeEnd || row.time_end),
 })
 
+const fromApiRow = (row) => ({
+  id: row.id,
+  day: row.day || '',
+  date: row.date || '',
+  timeStart: row.time_start || '',
+  timeEnd: row.time_end || '',
+  totalHours: row.total_hours ?? 0,
+  branches: row.branches ?? 0,
+  ordersInput: row.orders_input ?? 0,
+  disputedOrders: row.disputed_orders ?? 0,
+  emailsFollowedUp: row.emails_followed_up ?? 0,
+  updatedOrders: row.updated_orders ?? 0,
+  videosUploaded: row.videos_uploaded ?? 0,
+  platformUsed: row.platform_used || '',
+  remarks: row.remarks || '',
+})
+
+const toApiRow = (row, includeId = true) => {
+  const payload = {
+    day: row.day,
+    date: row.date,
+    time_start: row.timeStart,
+    time_end: row.timeEnd,
+    total_hours: row.totalHours,
+    branches: row.branches,
+    orders_input: row.ordersInput,
+    disputed_orders: row.disputedOrders,
+    emails_followed_up: row.emailsFollowedUp,
+    updated_orders: row.updatedOrders,
+    videos_uploaded: row.videosUploaded,
+    platform_used: row.platformUsed,
+    remarks: row.remarks,
+  }
+  // Only include id when updating existing rows; avoid overriding identity column for inserts.
+  if (includeId && row.id) payload.id = row.id
+  return payload
+}
+
+const withDerivedMetrics = (row) => {
+  const totalActivities =
+    Number(row.ordersInput ?? 0) +
+    Number(row.disputedOrders ?? 0) +
+    Number(row.emailsFollowedUp ?? 0) +
+    Number(row.updatedOrders ?? 0) +
+    Number(row.videosUploaded ?? 0)
+
+  const productivityPerHour = row.totalHours ? totalActivities / row.totalHours : 0
+  const averageActivitiesPerSite = row.totalHours && row.branches ? totalActivities / (row.branches * row.totalHours) : 0
+
+  return {
+    ...row,
+    productivityTotalActivities: totalActivities,
+    productivityPerHour: Number(productivityPerHour.toFixed(2)),
+    averageActivitiesPerSite: Number(averageActivitiesPerSite.toFixed(2)),
+  }
+}
+
 export function useProgressData(initialRows) {
-  const [rows, setRows] = useState(initialRows)
+  const [rows, setRows] = useState(() => initialRows.map((row) => withDerivedMetrics(normalizeRowTimes(row))))
   const [sort, setSort] = useState({ column: 'date', direction: 'desc' })
   const [entryForm, setEntryForm] = useState(emptyEntryForm)
   const [entryErrors, setEntryErrors] = useState({})
@@ -93,19 +151,18 @@ export function useProgressData(initialRows) {
   const [lastSavedId, setLastSavedId] = useState(null)
   const [showDayModal, setShowDayModal] = useState(false)
   const [draftSavedAt, setDraftSavedAt] = useState(null)
+  const [loading, setLoading] = useState(false)
+  const [loadError, setLoadError] = useState(null)
+  const [isSyncing, setIsSyncing] = useState(false)
+  const [loadedOnce, setLoadedOnce] = useState(false)
+  const [sheetUrl, setSheetUrl] = useState('')
+  const [importStatus, setImportStatus] = useState('')
   const formRef = useRef(null)
 
-  // On first mount, hydrate rows and draft entry from storage if available.
+  // On first mount, hydrate draft entry from storage if available and pull rows from the backend.
   useEffect(() => {
     try {
-      const savedRows = localStorage.getItem(STORAGE_KEYS.rows)
       const savedEntry = localStorage.getItem(STORAGE_KEYS.entry)
-
-      if (savedRows) {
-        const parsedRows = JSON.parse(savedRows)
-        if (Array.isArray(parsedRows) && parsedRows.length > 0) setRows(parsedRows.map(normalizeRowTimes))
-      }
-
       if (savedEntry) {
         const parsedEntry = JSON.parse(savedEntry)
         if (parsedEntry && typeof parsedEntry === 'object') setEntryForm((prev) => ({ ...prev, ...parsedEntry }))
@@ -113,23 +170,26 @@ export function useProgressData(initialRows) {
     } catch (err) {
       // ignore storage errors
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  // Normalize any initial rows (e.g., seeded/CSV) so time inputs render correctly in edit mode.
-  useEffect(() => {
-    setRows((prev) => prev.map(normalizeRowTimes))
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
-
-  // Persist rows whenever they change.
-  useEffect(() => {
+  const loadRowsFromApi = useCallback(async () => {
+    setLoading(true)
+    setLoadError(null)
     try {
-      localStorage.setItem(STORAGE_KEYS.rows, JSON.stringify(rows))
+      const response = await apiClient.getRows(2000)
+      const mapped = (response?.data || []).map((row) => withDerivedMetrics(normalizeRowTimes(fromApiRow(row))))
+      setRows(mapped)
     } catch (err) {
-      // ignore storage errors
+      setLoadError(err?.message || 'Unable to load data from the server.')
+    } finally {
+      setLoading(false)
+      setLoadedOnce(true)
     }
-  }, [rows])
+  }, [])
+
+  useEffect(() => {
+    loadRowsFromApi()
+  }, [loadRowsFromApi])
 
   // Persist the in-progress form draft as the user types.
   useEffect(() => {
@@ -227,18 +287,18 @@ export function useProgressData(initialRows) {
   const summary = useMemo(() => {
     const totals = filteredRows.reduce(
       (acc, row) => ({
-        hours: acc.hours + row.totalHours,
-        activities: acc.activities + row.productivityTotalActivities,
-        orders: acc.orders + row.ordersInput,
-        disputed: acc.disputed + row.disputedOrders,
-        emails: acc.emails + row.emailsFollowedUp,
-        sites: acc.sites + row.averageActivitiesPerSite,
+        hours: acc.hours + Number(row.totalHours || 0),
+        activities: acc.activities + Number(row.productivityTotalActivities || 0),
+        orders: acc.orders + Number(row.ordersInput || 0),
+        disputed: acc.disputed + Number(row.disputedOrders || 0),
+        emails: acc.emails + Number(row.emailsFollowedUp || 0),
+        sites: acc.sites + Number(row.averageActivitiesPerSite || 0),
       }),
       { hours: 0, activities: 0, orders: 0, disputed: 0, emails: 0, sites: 0 },
     )
 
-    const minutesPerActivity = totals.activities ? (totals.hours * 60) / totals.activities : 0
-    const avgActivitiesPerSite = filteredRows.length ? totals.sites / filteredRows.length : 0
+    const minutesPerActivityRaw = totals.activities ? (totals.hours * 60) / totals.activities : 0
+    const avgActivitiesPerSiteRaw = filteredRows.length ? totals.sites / filteredRows.length : 0
 
     return {
       totalHours: totals.hours,
@@ -246,9 +306,8 @@ export function useProgressData(initialRows) {
       totalOrdersInput: totals.orders,
       totalDisputed: totals.disputed,
       totalEmails: totals.emails,
-      minutesPerActivity,
-      avgActivitiesPerSite,
-      minutesPerActivity,
+      minutesPerActivity: Number(minutesPerActivityRaw.toFixed(2)),
+      avgActivitiesPerSite: Number(avgActivitiesPerSiteRaw.toFixed(2)),
     }
   }, [filteredRows])
 
@@ -301,7 +360,7 @@ export function useProgressData(initialRows) {
   }
 
   // Create or update a row, computing derived productivity metrics before saving.
-  const handleAddEntry = (event) => {
+  const handleAddEntry = async (event) => {
     event.preventDefault()
     const errors = validateEntry()
     setEntryErrors(errors)
@@ -312,41 +371,41 @@ export function useProgressData(initialRows) {
     const timeStart24 = normalizeTimeForInput(to24h(entryForm.timeStart))
     const timeEnd24 = normalizeTimeForInput(to24h(entryForm.timeEnd))
 
-    const totalActivities =
-      toNumber(entryForm.ordersInput) +
-      toNumber(entryForm.disputedOrders) +
-      toNumber(entryForm.emailsFollowedUp) +
-      toNumber(entryForm.updatedOrders) +
-      toNumber(entryForm.videosUploaded)
-
-    const branches = toNumber(entryForm.branches)
-    const productivityPerHour = hoursDecimal ? totalActivities / hoursDecimal : 0
-    const averageActivitiesPerSite = hoursDecimal && branches ? totalActivities / (branches * hoursDecimal) : 0
-    const newRow = {
+    const newRow = withDerivedMetrics({
       id: editingId || Date.now(),
       ...entryForm,
       timeStart: timeStart24,
       timeEnd: timeEnd24,
       totalHours: Number(hoursDecimal.toFixed(2)),
-      branches,
+      branches: toNumber(entryForm.branches),
       ordersInput: toNumber(entryForm.ordersInput),
       disputedOrders: toNumber(entryForm.disputedOrders),
       emailsFollowedUp: toNumber(entryForm.emailsFollowedUp),
       updatedOrders: toNumber(entryForm.updatedOrders),
       videosUploaded: toNumber(entryForm.videosUploaded),
-      productivityTotalActivities: totalActivities,
-      productivityPerHour: Number(productivityPerHour.toFixed(2)),
-      averageActivitiesPerSite: Number(averageActivitiesPerSite.toFixed(2)),
-    }
+    })
 
+    const previousRows = rows
     setRows((prev) => {
       if (editingId) return prev.map((row) => (row.id === editingId ? newRow : row))
       return [newRow, ...prev]
     })
-    setEntryForm(emptyEntryForm)
-    setEntryErrors({})
-    setEditingId(null)
-    setLastSavedId(newRow.id)
+
+    setIsSyncing(true)
+    try {
+      const includeId = Boolean(editingId)
+      await apiClient.upsertRow(toApiRow(newRow, includeId))
+      await loadRowsFromApi()
+      setEntryForm(emptyEntryForm)
+      setEntryErrors({})
+      setEditingId(null)
+      setLastSavedId(newRow.id)
+    } catch (err) {
+      setRows(previousRows)
+      setEntryErrors((prev) => ({ ...prev, form: err?.message || 'Unable to save entry.' }))
+    } finally {
+      setIsSyncing(false)
+    }
   }
 
   // Load a row into the form for editing and scroll the form into view.
@@ -367,6 +426,7 @@ export function useProgressData(initialRows) {
       emailsFollowedUp: target.emailsFollowedUp ?? '',
       updatedOrders: target.updatedOrders ?? '',
       videosUploaded: target.videosUploaded ?? '',
+      platformUsed: target.platformUsed || '',
       remarks: target.remarks || '',
     })
 
@@ -389,6 +449,7 @@ export function useProgressData(initialRows) {
     setRows((prev) => prev.filter((row) => row.id !== rowId))
     setLastSavedId(null)
     if (editingId === rowId) handleCancelEdit()
+    // Backend delete is not implemented yet; this only removes the row locally.
   }
 
   return {
@@ -405,6 +466,12 @@ export function useProgressData(initialRows) {
       lastSavedId,
       showDayModal,
       draftSavedAt,
+      loading,
+      loadError,
+      isSyncing,
+      loadedOnce,
+      sheetUrl,
+      importStatus,
       formRef,
       summary,
     },
@@ -418,6 +485,24 @@ export function useProgressData(initialRows) {
       handleEditRow,
       handleCancelEdit,
       handleDeleteRow,
+      reloadRows: loadRowsFromApi,
+      setSheetUrl,
+      handleImportSpreadsheet: async () => {
+        if (!sheetUrl) {
+          setImportStatus('Paste a Google Sheet link or ID to import.')
+          return
+        }
+        setImportStatus('Importing...')
+        try {
+          const result = await apiClient.importSheet(sheetUrl)
+          setImportStatus(`Imported ${result.imported} rows. Refreshing...`)
+          await loadRowsFromApi()
+          setImportStatus('Imported successfully.')
+        } catch (err) {
+          setImportStatus(err?.message || 'Import failed.')
+        }
+      },
+      resetRows: () => setRows([]),
     },
   }
 }
