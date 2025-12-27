@@ -1,5 +1,29 @@
 import { useEffect, useRef } from 'react'
 
+const formatTime12h = (value) => {
+  if (!value || typeof value !== 'string') return '—'
+  const raw = value.trim()
+  // If user already typed AM/PM, return cleaned spacing/case.
+  const ampmMatch = raw.match(/^([0-9]{1,2}):([0-9]{2})(?::([0-9]{2}))?\s*(am|pm)$/i)
+  if (ampmMatch) {
+    const [, hh, mm, ss, mer] = ampmMatch
+    const time = ss ? `${hh.padStart(2, '0')}:${mm}:${ss}` : `${hh.padStart(2, '0')}:${mm}`
+    return `${time} ${mer.toUpperCase()}`
+  }
+
+  const m = raw.match(/^([0-9]{1,2}):([0-9]{2})(?::([0-9]{2}))?$/)
+  if (!m) return raw
+  let [_, h, min, sec = ''] = m
+  let hour = Number(h)
+  if (Number.isNaN(hour) || hour > 23) return raw
+  const meridiem = hour >= 12 ? 'PM' : 'AM'
+  hour = hour % 12 || 12
+  const hh = String(hour).padStart(2, '0')
+  const mm = min.padStart(2, '0')
+  const suffix = sec ? `:${sec}` : ''
+  return `${hh}:${mm}${suffix} ${meridiem}`
+}
+
 function SessionTable({ rows, sort, editingId, lastSavedId, page, totalPages, onChangePage, onSort, onEditRow, onDeleteRow }) {
   const rowRefs = useRef({})
 
@@ -119,7 +143,7 @@ function SessionTable({ rows, sort, editingId, lastSavedId, page, totalPages, on
                     {row.day} · {row.date}
                   </td>
                   <td className="whitespace-nowrap border border-slate-200 px-3 py-2 text-slate-700">
-                    {row.timeStart} – {row.timeEnd}
+                    {formatTime12h(row.timeStart)} – {formatTime12h(row.timeEnd)}
                   </td>
                   <td className="border border-slate-200 px-3 py-2 text-right">{row.branches}</td>
                   <td className="border border-slate-200 px-3 py-2 text-right">{row.ordersInput}</td>

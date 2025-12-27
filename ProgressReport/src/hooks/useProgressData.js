@@ -23,6 +23,65 @@ const emptyEntryForm = {
   remarks: '',
 }
 
+// Pads time strings so they render in <input type="time"> (expects HH:MM or HH:MM:SS with leading zeros).
+const normalizeTimeForInput = (value) => {
+  if (!value || typeof value !== 'string') return ''
+  const parts = value.split(':')
+  if (parts.length < 2) return ''
+  const [h, m, s] = parts
+  const hh = String(h ?? '').padStart(2, '0')
+  const mm = String(m ?? '').padStart(2, '0')
+  if (parts.length >= 3) {
+    const ss = String(s ?? '').padStart(2, '0')
+    return `${hh}:${mm}:${ss}`
+  }
+  return `${hh}:${mm}`
+}
+
+const to24h = (value) => {
+  if (!value || typeof value !== 'string') return ''
+  const match = value.trim().match(/^([0-9]{1,2}):([0-9]{2})(?::([0-9]{2}))?\s*(am|pm)?$/i)
+  if (!match) return ''
+  let [_, h, m, s = '00', meridiem] = match
+  let hourNum = Number(h)
+  const minuteNum = Number(m)
+  const secNum = Number(s)
+  if (Number.isNaN(hourNum) || Number.isNaN(minuteNum) || Number.isNaN(secNum)) return ''
+  if (minuteNum > 59 || secNum > 59) return ''
+
+  if (meridiem) {
+    const lower = meridiem.toLowerCase()
+    if (hourNum === 12) hourNum = 0
+    if (lower === 'pm') hourNum += 12
+    if (hourNum === 24) hourNum = 12
+  }
+  if (hourNum > 23) return ''
+  const hh = String(hourNum).padStart(2, '0')
+  const mm = String(minuteNum).padStart(2, '0')
+  const ss = String(secNum).padStart(2, '0')
+  return ss === '00' ? `${hh}:${mm}` : `${hh}:${mm}:${ss}`
+}
+
+const to12hDisplay = (value) => {
+  if (!value || typeof value !== 'string') return ''
+  const v24 = to24h(value)
+  if (!v24) return ''
+  const [hStr, mStr = '00'] = v24.split(':')
+  let hourNum = Number(hStr)
+  if (Number.isNaN(hourNum)) return ''
+  const meridiem = hourNum >= 12 ? 'PM' : 'AM'
+  hourNum = hourNum % 12 || 12
+  const hh = String(hourNum).padStart(2, '0')
+  const mm = String(Number(mStr)).padStart(2, '0')
+  return `${hh}:${mm} ${meridiem}`
+}
+
+const normalizeRowTimes = (row) => ({
+  ...row,
+  timeStart: normalizeTimeForInput(row.timeStart),
+  timeEnd: normalizeTimeForInput(row.timeEnd),
+})
+
 export function useProgressData(initialRows) {
   const [rows, setRows] = useState(initialRows)
   const [sort, setSort] = useState({ column: 'date', direction: 'desc' })
@@ -43,7 +102,7 @@ export function useProgressData(initialRows) {
 
       if (savedRows) {
         const parsedRows = JSON.parse(savedRows)
-        if (Array.isArray(parsedRows) && parsedRows.length > 0) setRows(parsedRows)
+        if (Array.isArray(parsedRows) && parsedRows.length > 0) setRows(parsedRows.map(normalizeRowTimes))
       }
 
       if (savedEntry) {
@@ -53,6 +112,12 @@ export function useProgressData(initialRows) {
     } catch (err) {
       // ignore storage errors
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  // Normalize any initial rows (e.g., seeded/CSV) so time inputs render correctly in edit mode.
+  useEffect(() => {
+    setRows((prev) => prev.map(normalizeRowTimes))
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
@@ -218,6 +283,18 @@ export function useProgressData(initialRows) {
     if (!entryForm.totalHours) errors.totalHours = 'Required'
     if (Number.isNaN(hoursDecimal) || hoursDecimal <= 0) errors.totalHours = 'Enter valid time (HH:MM or HH:MM:SS)'
 
+    const start24 = to24h(entryForm.timeStart)
+    const end24 = to24h(entryForm.timeEnd)
+    if (!start24) errors.timeStart = 'Use format HH:MM AM/PM'
+    if (!end24) errors.timeEnd = 'Use format HH:MM AM/PM'
+    if (start24 && end24) {
+      const startMinutes = parseTimeToDecimal(start24) * 60
+      const endMinutes = parseTimeToDecimal(end24) * 60
+      if (!Number.isNaN(startMinutes) && !Number.isNaN(endMinutes) && endMinutes <= startMinutes) {
+        errors.timeEnd = 'End must be after start'
+      }
+    }
+
     return errors
   }
 
@@ -230,6 +307,8 @@ export function useProgressData(initialRows) {
 
     const toNumber = (value) => Number.parseFloat(value)
     const hoursDecimal = parseTimeToDecimal(entryForm.totalHours)
+    const timeStart24 = normalizeTimeForInput(to24h(entryForm.timeStart))
+    const timeEnd24 = normalizeTimeForInput(to24h(entryForm.timeEnd))
 
     const totalActivities =
       toNumber(entryForm.ordersInput) +
@@ -244,6 +323,8 @@ export function useProgressData(initialRows) {
     const newRow = {
       id: editingId || Date.now(),
       ...entryForm,
+      timeStart: timeStart24,
+      timeEnd: timeEnd24,
       totalHours: Number(hoursDecimal.toFixed(2)),
       branches,
       ordersInput: toNumber(entryForm.ordersInput),
@@ -275,8 +356,8 @@ export function useProgressData(initialRows) {
     setEntryForm({
       day: target.day || '',
       date: target.date || '',
-      timeStart: target.timeStart || '',
-      timeEnd: target.timeEnd || '',
+      timeStart: to12hDisplay(target.timeStart),
+      timeEnd: to12hDisplay(target.timeEnd),
       totalHours: formatDecimalToTime(target.totalHours),
       branches: target.branches ?? '',
       ordersInput: target.ordersInput ?? '',

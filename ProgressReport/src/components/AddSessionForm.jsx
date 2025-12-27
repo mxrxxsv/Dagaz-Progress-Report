@@ -1,25 +1,18 @@
-const parseTimeToDecimal = (value) => {
-  if (!value || typeof value !== 'string') return Number.NaN
-  const parts = value.split(':').map(Number)
-  if (parts.length < 2 || parts.length > 3) return Number.NaN
-  const [h, m, s = 0] = parts
-  if ([h, m, s].some((v) => Number.isNaN(v))) return Number.NaN
-  return h + m / 60 + s / 3600
-}
+import { parseTimeToDecimal } from '../utils/time'
 
 function AddSessionForm({ entryForm, entryErrors, formRef, editingId, onChangeField, onSubmit, onCancelEdit, onOpenDayModal }) {
   const inputFields = [
     { key: 'day', label: 'Day', type: 'text' },
     { key: 'date', label: 'Date', type: 'date' },
-    { key: 'timeStart', label: 'Time start', type: 'time' },
-    { key: 'timeEnd', label: 'Time end', type: 'time' },
+    { key: 'timeStart', label: 'Time start', type: 'text', placeholder: 'e.g. 02:30 PM' },
+    { key: 'timeEnd', label: 'Time end', type: 'text', placeholder: 'e.g. 03:45 PM' },
     { key: 'branches', label: '# of branches', type: 'number' },
     { key: 'ordersInput', label: 'Orders input', type: 'number' },
     { key: 'disputedOrders', label: 'Disputed orders', type: 'number' },
     { key: 'emailsFollowedUp', label: 'Emails followed up', type: 'number' },
     { key: 'updatedOrders', label: 'Updated orders', type: 'number' },
     { key: 'videosUploaded', label: 'Videos uploaded', type: 'number' },
-    { key: 'totalHours', label: 'Total hours (HH:MM or HH:MM:SS)', type: 'text', placeholder: 'e.g. 7:45' },
+    { key: 'totalHours', label: 'Total hours (HH:MM or HH:MM:SS)', type: 'text', placeholder: 'e.g. 1:05:23' },
   ]
 
   const computedChips = [
