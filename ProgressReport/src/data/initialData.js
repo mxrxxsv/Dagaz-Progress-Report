@@ -1,5 +1,5 @@
 // Attempts to load the first CSV in this folder; falls back to dummy data when absent.
-let csvText = ''
+let csvText = 'Warrior_EIS James Marius\' Progress Report'
 
 try {
   const csvModules = import.meta.glob('./*.csv', { as: 'raw', eager: true })

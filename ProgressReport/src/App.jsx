@@ -20,6 +20,7 @@ function App() {
     sort,
     entryForm,
     entryErrors,
+    draftSavedAt,
     monthFilter,
     monthOptions,
     page,
@@ -104,6 +105,7 @@ function App() {
       summary={summary}
       entryForm={entryForm}
       entryErrors={entryErrors}
+      draftSavedAt={draftSavedAt}
       formRef={formRef}
       lastSavedId={lastSavedId}
       rows={rows}

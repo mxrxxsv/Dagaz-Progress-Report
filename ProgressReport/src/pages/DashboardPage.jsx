@@ -9,6 +9,7 @@ function DashboardPage({
   summary,
   entryForm,
   entryErrors,
+  draftSavedAt,
   lastSavedId,
   formRef,
   rows,
@@ -70,6 +71,7 @@ function DashboardPage({
         <AddSessionForm
           entryForm={entryForm}
           entryErrors={entryErrors}
+          draftSavedAt={draftSavedAt}
           formRef={formRef}
           editingId={editingId}
           onChangeField={onChangeEntryField}

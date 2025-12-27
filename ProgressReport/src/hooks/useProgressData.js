@@ -92,6 +92,7 @@ export function useProgressData(initialRows) {
   const [editingId, setEditingId] = useState(null)
   const [lastSavedId, setLastSavedId] = useState(null)
   const [showDayModal, setShowDayModal] = useState(false)
+  const [draftSavedAt, setDraftSavedAt] = useState(null)
   const formRef = useRef(null)
 
   // On first mount, hydrate rows and draft entry from storage if available.
@@ -134,6 +135,7 @@ export function useProgressData(initialRows) {
   useEffect(() => {
     try {
       localStorage.setItem(STORAGE_KEYS.entry, JSON.stringify(entryForm))
+      setDraftSavedAt(Date.now())
     } catch (err) {
       // ignore storage errors
     }
@@ -402,6 +404,7 @@ export function useProgressData(initialRows) {
       editingId,
       lastSavedId,
       showDayModal,
+      draftSavedAt,
       formRef,
       summary,
     },

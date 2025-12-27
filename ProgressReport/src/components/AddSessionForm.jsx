@@ -1,6 +1,6 @@
 import { parseTimeToDecimal } from '../utils/time'
 
-function AddSessionForm({ entryForm, entryErrors, formRef, editingId, onChangeField, onSubmit, onCancelEdit, onOpenDayModal }) {
+function AddSessionForm({ entryForm, entryErrors, draftSavedAt, formRef, editingId, onChangeField, onSubmit, onCancelEdit, onOpenDayModal }) {
   const inputFields = [
     { key: 'day', label: 'Day', type: 'text' },
     { key: 'date', label: 'Date', type: 'date' },
@@ -14,6 +14,10 @@ function AddSessionForm({ entryForm, entryErrors, formRef, editingId, onChangeFi
     { key: 'videosUploaded', label: 'Videos uploaded', type: 'number' },
     { key: 'totalHours', label: 'Total hours (HH:MM or HH:MM:SS)', type: 'text', placeholder: 'e.g. 1:05:23' },
   ]
+
+  const draftStatus = draftSavedAt
+    ? `Draft saved locally at ${new Date(draftSavedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`
+    : 'Draft saves locally as you type'
 
   const computedChips = [
     {
@@ -75,6 +79,7 @@ function AddSessionForm({ entryForm, entryErrors, formRef, editingId, onChangeFi
         <div>
           <h2 className="text-lg font-semibold text-slate-900">{editingId ? 'Edit session' : 'Add session'}</h2>
         </div>
+        <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">{draftStatus}</div>
       </div>
 
       <form className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4" onSubmit={onSubmit}>
